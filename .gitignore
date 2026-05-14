@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.local
+node_modules/
+dist/
+bin/
+tmp/
+*.log
+backend/snaptask-api
+backend/*.exe
+frontend/.firebase/

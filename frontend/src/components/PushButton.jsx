@@ -16,8 +16,16 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Push failed')
-      const failed = (data.results ?? []).filter((result) => result.status !== 'ok')
-      setMessage(failed.length ? `${failed.length} item failed. Check Google permissions.` : 'Pushed to Google Tasks and Calendar.')
+      const results = data.results ?? []
+      const failed = results.filter((result) => result.status === 'error')
+      const skipped = results.filter((result) => result.status === 'skipped')
+      if (failed.length) {
+        setMessage(`${failed.length} item failed. Check Google permissions.`)
+      } else if (skipped.length) {
+        setMessage(`Pushed to Google. ${skipped.length} note ${skipped.length === 1 ? 'was' : 'were'} kept review-only.`)
+      } else {
+        setMessage('Pushed to Google Tasks and Calendar.')
+      }
       setState('done')
     } catch (err) {
       setMessage(err.message)

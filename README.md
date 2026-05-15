@@ -40,7 +40,7 @@ For real mobile share-target testing, deploy the frontend to a valid HTTPS origi
 - `POST /extract` with multipart field `image`
 - `POST /push` with `{ "access_token": "...", "items": [...] }`
 
-`/push` sends `task` and `note` items to Google Tasks. `event` items go to Google Calendar.
+`/push` sends `task` items to Google Tasks and `event` items to Google Calendar. `note` items are returned as `skipped` because they are review-only.
 
 ## Cloud Run Deployment
 

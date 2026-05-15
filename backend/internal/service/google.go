@@ -30,11 +30,14 @@ func (s *GoogleService) Push(ctx context.Context, accessToken string, items []mo
 		wg.Add(1)
 		go func(i int, current model.ExtractedItem) {
 			defer wg.Done()
-			if current.Type == "event" {
+			switch current.Type {
+			case "event":
 				results[i] = s.createEvent(ctx, accessToken, current)
-				return
+			case "note":
+				results[i] = skippedResult(current, "notes are review-only and are not pushed to Google")
+			default:
+				results[i] = s.createTask(ctx, accessToken, current)
 			}
-			results[i] = s.createTask(ctx, accessToken, current)
 		}(idx, item)
 	}
 
@@ -122,4 +125,13 @@ func pushResult(item model.ExtractedItem, id string, err error) model.PushResult
 		result.Error = err.Error()
 	}
 	return result
+}
+
+func skippedResult(item model.ExtractedItem, reason string) model.PushResult {
+	return model.PushResult{
+		Title:  item.Title,
+		Type:   item.Type,
+		Status: "skipped",
+		Error:  reason,
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -50,8 +51,8 @@ func (s *GoogleService) createTask(ctx context.Context, token string, item model
 		"title": item.Title,
 		"notes": item.Detail,
 	}
-	if item.DueDate != nil && *item.DueDate != "" {
-		payload["due"] = *item.DueDate
+	if due, ok := normalizeGoogleDueDate(item.DueDate); ok {
+		payload["due"] = due
 	}
 
 	id, err := s.postGoogle(ctx, token, "https://tasks.googleapis.com/tasks/v1/lists/@default/tasks", payload)
@@ -60,10 +61,8 @@ func (s *GoogleService) createTask(ctx context.Context, token string, item model
 
 func (s *GoogleService) createEvent(ctx context.Context, token string, item model.ExtractedItem) model.PushResult {
 	start := time.Now().Add(24 * time.Hour).UTC()
-	if item.DueDate != nil && *item.DueDate != "" {
-		if parsed, err := time.Parse(time.RFC3339, *item.DueDate); err == nil {
-			start = parsed.UTC()
-		}
+	if parsed, ok := parseDueDate(item.DueDate); ok {
+		start = parsed
 	}
 	end := start.Add(time.Hour)
 	payload := map[string]any{
@@ -111,6 +110,31 @@ func (s *GoogleService) postGoogle(ctx context.Context, token, url string, paylo
 		return "", err
 	}
 	return decoded.ID, nil
+}
+
+func normalizeGoogleDueDate(value *string) (string, bool) {
+	parsed, ok := parseDueDate(value)
+	if !ok {
+		return "", false
+	}
+	return parsed.Format(time.RFC3339), true
+}
+
+func parseDueDate(value *string) (time.Time, bool) {
+	if value == nil {
+		return time.Time{}, false
+	}
+	raw := strings.TrimSpace(*value)
+	if raw == "" {
+		return time.Time{}, false
+	}
+	if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+		return parsed.UTC(), true
+	}
+	if parsed, err := time.Parse("2006-01-02", raw); err == nil {
+		return parsed.UTC(), true
+	}
+	return time.Time{}, false
 }
 
 func pushResult(item model.ExtractedItem, id string, err error) model.PushResult {

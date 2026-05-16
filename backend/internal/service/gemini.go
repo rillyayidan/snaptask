@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	mimepkg "mime"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -16,6 +17,8 @@ import (
 
 	"snaptask/backend/internal/model"
 )
+
+const maxGeminiImageBytes = 10 * 1024 * 1024
 
 const extractorPrompt = `You are a task extractor. Analyze this screenshot and extract ALL action items, commitments, and time-sensitive information.
 
@@ -64,10 +67,13 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 	if len(imageBytes) == 0 {
 		return nil, errors.New("uploaded image is empty")
 	}
+	if len(imageBytes) > maxGeminiImageBytes {
+		return nil, fmt.Errorf("uploaded image is too large; max size is %d MB", maxGeminiImageBytes/1024/1024)
+	}
 
-	mimeType := header.Header.Get("Content-Type")
-	if mimeType == "" {
-		mimeType = http.DetectContentType(imageBytes)
+	mimeType := normalizeImageMimeType(header.Header.Get("Content-Type"), imageBytes)
+	if !isSupportedImageMimeType(mimeType) {
+		return nil, fmt.Errorf("unsupported image type %q; upload a PNG, JPEG, WebP, GIF, HEIC, or HEIF screenshot", mimeType)
 	}
 
 	payload := geminiRequest{
@@ -131,6 +137,28 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 		return nil, fmt.Errorf("parse extracted JSON: %w", err)
 	}
 	return NormalizeItems(items), nil
+}
+
+func normalizeImageMimeType(uploaded string, imageBytes []byte) string {
+	if uploaded != "" {
+		if mediaType, _, err := mimepkg.ParseMediaType(uploaded); err == nil {
+			uploaded = mediaType
+		}
+		uploaded = strings.ToLower(strings.TrimSpace(uploaded))
+	}
+	if isSupportedImageMimeType(uploaded) {
+		return uploaded
+	}
+	return strings.ToLower(http.DetectContentType(imageBytes))
+}
+
+func isSupportedImageMimeType(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "image/png", "image/jpeg", "image/webp", "image/gif", "image/heic", "image/heif":
+		return true
+	default:
+		return false
+	}
 }
 
 type geminiRequest struct {

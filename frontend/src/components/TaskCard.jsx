@@ -6,6 +6,23 @@ const icons = {
   note: StickyNote
 }
 
+function toDateTimeLocal(value) {
+  if (!value) return ''
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T00:00`
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const pad = (part) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function fromDateTimeLocal(value) {
+  if (!value) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
 export function TaskCard({ item, index, onUpdate, onDelete }) {
   const Icon = icons[item.type] ?? ClipboardCheck
   return (
@@ -48,7 +65,11 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
       </div>
       <label>
         Due date
-        <input value={item.due_date ?? ''} placeholder="2026-05-15T15:00:00+07:00" onChange={(event) => onUpdate(index, { due_date: event.target.value || null })} />
+        <input
+          type="datetime-local"
+          value={toDateTimeLocal(item.due_date)}
+          onChange={(event) => onUpdate(index, { due_date: fromDateTimeLocal(event.target.value) })}
+        />
       </label>
     </article>
   )

@@ -126,17 +126,39 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 		return nil, errors.New("gemini returned no extraction candidates")
 	}
 
-	text := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	items, err := parseExtractedItems(geminiResp.Candidates[0].Content.Parts[0].Text)
+	if err != nil {
+		return nil, err
+	}
+	return NormalizeItems(items), nil
+}
+
+func parseExtractedItems(text string) ([]model.ExtractedItem, error) {
+	text = cleanGeminiJSONText(text)
+
+	var items []model.ExtractedItem
+	if err := json.Unmarshal([]byte(text), &items); err == nil {
+		return items, nil
+	}
+
+	var wrapped struct {
+		Items []model.ExtractedItem `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(text), &wrapped); err != nil {
+		return nil, fmt.Errorf("parse extracted JSON: %w", err)
+	}
+	if wrapped.Items == nil {
+		return nil, errors.New("parse extracted JSON: missing items array")
+	}
+	return wrapped.Items, nil
+}
+
+func cleanGeminiJSONText(text string) string {
+	text = strings.TrimSpace(text)
 	text = strings.TrimPrefix(text, "```json")
 	text = strings.TrimPrefix(text, "```")
 	text = strings.TrimSuffix(text, "```")
-	text = strings.TrimSpace(text)
-
-	var items []model.ExtractedItem
-	if err := json.Unmarshal([]byte(text), &items); err != nil {
-		return nil, fmt.Errorf("parse extracted JSON: %w", err)
-	}
-	return NormalizeItems(items), nil
+	return strings.TrimSpace(text)
 }
 
 func normalizeImageMimeType(uploaded string, imageBytes []byte) string {

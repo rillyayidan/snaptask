@@ -23,3 +23,23 @@ func TestSupportedImageMimeTypeRejectsPDF(t *testing.T) {
 		t.Fatal("expected PDF MIME type to be rejected")
 	}
 }
+
+func TestParseExtractedItemsAcceptsMarkdownFencedArray(t *testing.T) {
+	items, err := parseExtractedItems("```json\n[{\"type\":\"task\",\"title\":\"Send deck\",\"priority\":\"high\"}]\n```")
+	if err != nil {
+		t.Fatalf("expected fenced JSON to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Title != "Send deck" {
+		t.Fatalf("expected parsed task item, got %#v", items)
+	}
+}
+
+func TestParseExtractedItemsAcceptsWrappedItemsArray(t *testing.T) {
+	items, err := parseExtractedItems("{\"items\":[{\"type\":\"event\",\"title\":\"Friday sync\",\"priority\":\"medium\"}]}")
+	if err != nil {
+		t.Fatalf("expected wrapped items JSON to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Type != "event" {
+		t.Fatalf("expected wrapped event item, got %#v", items)
+	}
+}

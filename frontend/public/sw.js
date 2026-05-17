@@ -27,5 +27,9 @@ async function handleShareTarget(request) {
 async function readSharedImage() {
   const cache = await caches.open('snaptask-share')
   const response = await cache.match('/shared-image')
-  return response || new Response('', { status: 404 })
+  if (!response) {
+    return new Response('', { status: 404 })
+  }
+  await cache.delete('/shared-image')
+  return response
 }

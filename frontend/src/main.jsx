@@ -26,6 +26,7 @@ function App() {
       setImage(sharedImage)
       setItems([])
       setError('')
+      setStatus('idle')
     }
   }, [sharedImage])
 
@@ -105,6 +106,7 @@ function App() {
                 setImage(null)
                 setItems([])
                 setError('')
+                setStatus('idle')
               }}>
                 <Trash2 size={19} />
               </button>

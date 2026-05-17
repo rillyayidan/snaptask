@@ -1,9 +1,14 @@
 import { Loader2, Send } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export function PushButton({ apiBase, accessToken, items, disabled, disabledReason }) {
   const [state, setState] = useState('idle')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    setState('idle')
+    setMessage('')
+  }, [accessToken, items])
 
   async function pushAll() {
     setState('pushing')

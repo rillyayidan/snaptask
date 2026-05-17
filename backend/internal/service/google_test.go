@@ -59,3 +59,27 @@ func TestNormalizeGoogleDueDateRejectsInvalidDate(t *testing.T) {
 		t.Fatalf("expected invalid due date to be rejected, got %q", got)
 	}
 }
+
+func TestCalendarEventTimesUsesAllDayForDateOnlyDueDate(t *testing.T) {
+	raw := "2026-05-15"
+	start, end := calendarEventTimes(&raw, time.Date(2026, 5, 14, 9, 0, 0, 0, time.UTC))
+
+	if start["date"] != "2026-05-15" || end["date"] != "2026-05-16" {
+		t.Fatalf("expected all-day event dates, got start=%v end=%v", start, end)
+	}
+	if start["dateTime"] != "" || end["dateTime"] != "" {
+		t.Fatalf("expected date-only event payload, got start=%v end=%v", start, end)
+	}
+}
+
+func TestCalendarEventTimesUsesDateTimeForRFC3339DueDate(t *testing.T) {
+	raw := "2026-05-15T15:00:00+07:00"
+	start, end := calendarEventTimes(&raw, time.Date(2026, 5, 14, 9, 0, 0, 0, time.UTC))
+
+	if start["dateTime"] != "2026-05-15T08:00:00Z" {
+		t.Fatalf("expected UTC start dateTime, got %v", start)
+	}
+	if end["dateTime"] != "2026-05-15T09:00:00Z" {
+		t.Fatalf("expected one-hour event end, got %v", end)
+	}
+}

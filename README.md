@@ -44,6 +44,34 @@ For real mobile share-target testing, deploy the frontend to a valid HTTPS origi
 
 `/push` sends `task` items to Google Tasks and `event` items to Google Calendar. `note` items are returned as `skipped` because they are review-only.
 
+### API Examples
+
+Extract tasks from a screenshot:
+
+```bash
+curl -X POST http://localhost:8081/extract \
+  -F "image=@./sample-screenshot.png"
+```
+
+Push reviewed items to Google:
+
+```bash
+curl -X POST http://localhost:8081/push \
+  -H "Content-Type: application/json" \
+  -d '{
+    "access_token": "GOOGLE_OAUTH_ACCESS_TOKEN",
+    "items": [
+      {
+        "type": "task",
+        "title": "Send project brief",
+        "detail": "Original screenshot text",
+        "due_date": "2026-05-22T09:00:00+07:00",
+        "priority": "medium"
+      }
+    ]
+  }'
+```
+
 ## Cloud Run Deployment
 
 Create an Artifact Registry Docker repo once:

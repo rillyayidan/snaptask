@@ -63,3 +63,57 @@ func TestParseExtractedItemsAcceptsTrailingText(t *testing.T) {
 		t.Fatalf("expected parsed note item, got %#v", items)
 	}
 }
+
+func TestExtractionTextFromResponseUsesLaterTextParts(t *testing.T) {
+	response := geminiResponse{}
+	response.Candidates = append(response.Candidates, struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"content"`
+	}{})
+	response.Candidates[0].Content.Parts = append(response.Candidates[0].Content.Parts,
+		struct {
+			Text string `json:"text"`
+		}{Text: "   "},
+		struct {
+			Text string `json:"text"`
+		}{Text: "[{\"type\":\"task\",\"title\":\"Send brief\"}]"},
+	)
+
+	text, err := extractionTextFromResponse(response)
+	if err != nil {
+		t.Fatalf("expected extraction text: %v", err)
+	}
+	if text != "[{\"type\":\"task\",\"title\":\"Send brief\"}]" {
+		t.Fatalf("expected later text part, got %q", text)
+	}
+}
+
+func TestExtractionTextFromResponseJoinsTextParts(t *testing.T) {
+	response := geminiResponse{}
+	response.Candidates = append(response.Candidates, struct {
+		Content struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"content"`
+	}{})
+	response.Candidates[0].Content.Parts = append(response.Candidates[0].Content.Parts,
+		struct {
+			Text string `json:"text"`
+		}{Text: "["},
+		struct {
+			Text string `json:"text"`
+		}{Text: "{\"type\":\"task\",\"title\":\"Pay invoice\"}]"},
+	)
+
+	text, err := extractionTextFromResponse(response)
+	if err != nil {
+		t.Fatalf("expected extraction text: %v", err)
+	}
+	if text != "[\n{\"type\":\"task\",\"title\":\"Pay invoice\"}]" {
+		t.Fatalf("expected joined text parts, got %q", text)
+	}
+}

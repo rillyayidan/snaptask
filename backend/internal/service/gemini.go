@@ -122,15 +122,31 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 	if err := json.Unmarshal(respBody, &geminiResp); err != nil {
 		return nil, fmt.Errorf("decode gemini response: %w", err)
 	}
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return nil, errors.New("gemini returned no extraction candidates")
+	extractionText, err := extractionTextFromResponse(geminiResp)
+	if err != nil {
+		return nil, err
 	}
 
-	items, err := parseExtractedItems(geminiResp.Candidates[0].Content.Parts[0].Text)
+	items, err := parseExtractedItems(extractionText)
 	if err != nil {
 		return nil, err
 	}
 	return NormalizeItems(items), nil
+}
+
+func extractionTextFromResponse(response geminiResponse) (string, error) {
+	for _, candidate := range response.Candidates {
+		var parts []string
+		for _, part := range candidate.Content.Parts {
+			if text := strings.TrimSpace(part.Text); text != "" {
+				parts = append(parts, text)
+			}
+		}
+		if len(parts) > 0 {
+			return strings.Join(parts, "\n"), nil
+		}
+	}
+	return "", errors.New("gemini returned no extraction text")
 }
 
 func parseExtractedItems(text string) ([]model.ExtractedItem, error) {

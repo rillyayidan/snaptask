@@ -158,7 +158,29 @@ func cleanGeminiJSONText(text string) string {
 	text = strings.TrimPrefix(text, "```json")
 	text = strings.TrimPrefix(text, "```")
 	text = strings.TrimSuffix(text, "```")
-	return strings.TrimSpace(text)
+	text = strings.TrimSpace(text)
+	if json.Valid([]byte(text)) {
+		return text
+	}
+	if payload, ok := extractJSONPayload(text); ok {
+		return payload
+	}
+	return text
+}
+
+func extractJSONPayload(text string) (string, bool) {
+	for index, char := range text {
+		if char != '[' && char != '{' {
+			continue
+		}
+
+		decoder := json.NewDecoder(strings.NewReader(text[index:]))
+		var payload json.RawMessage
+		if err := decoder.Decode(&payload); err == nil && len(payload) > 0 {
+			return string(payload), true
+		}
+	}
+	return "", false
 }
 
 func normalizeImageMimeType(uploaded string, imageBytes []byte) string {

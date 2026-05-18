@@ -43,3 +43,23 @@ func TestParseExtractedItemsAcceptsWrappedItemsArray(t *testing.T) {
 		t.Fatalf("expected wrapped event item, got %#v", items)
 	}
 }
+
+func TestParseExtractedItemsAcceptsPrefacedJSON(t *testing.T) {
+	items, err := parseExtractedItems("Here are the extracted tasks:\n[{\"type\":\"task\",\"title\":\"Send invoice\",\"priority\":\"medium\"}]")
+	if err != nil {
+		t.Fatalf("expected prefaced JSON to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Title != "Send invoice" {
+		t.Fatalf("expected parsed prefaced task, got %#v", items)
+	}
+}
+
+func TestParseExtractedItemsAcceptsTrailingText(t *testing.T) {
+	items, err := parseExtractedItems("[{\"type\":\"note\",\"title\":\"Remember budget\",\"priority\":\"low\"}]\nDone.")
+	if err != nil {
+		t.Fatalf("expected JSON with trailing text to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Type != "note" {
+		t.Fatalf("expected parsed note item, got %#v", items)
+	}
+}

@@ -14,21 +14,25 @@ if ('serviceWorker' in navigator) {
 }
 
 function App() {
-  const sharedImage = useShareTarget()
+  const shared = useShareTarget()
   const auth = useGoogleAuth()
-  const [image, setImage] = useState(sharedImage)
+  const [image, setImage] = useState(shared.image)
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
 
   React.useEffect(() => {
-    if (sharedImage) {
-      setImage(sharedImage)
+    if (shared.image) {
+      setImage(shared.image)
       setItems([])
       setError('')
       setStatus('idle')
     }
-  }, [sharedImage])
+    if (shared.error) {
+      setError(shared.error)
+      setStatus('idle')
+    }
+  }, [shared.image, shared.error])
 
   const imageUrl = React.useMemo(() => (image ? URL.createObjectURL(image) : ''), [image])
 

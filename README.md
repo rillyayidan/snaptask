@@ -30,6 +30,8 @@ npm.cmd install
 npm.cmd run dev
 ```
 
+The frontend env file needs `VITE_API_BASE_URL` plus the Firebase web app config values. Google sign-in must request Tasks and Calendar scopes, so keep demo accounts listed as test users until the OAuth consent screen is verified for production.
+
 For real mobile share-target testing, deploy the frontend to a valid HTTPS origin and install the PWA. Local desktop upload works without install.
 
 ## Backend API

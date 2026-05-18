@@ -13,6 +13,7 @@ func NormalizeItems(items []model.ExtractedItem) []model.ExtractedItem {
 		item.Priority = normalizePriority(item.Priority)
 		item.Title = strings.TrimSpace(item.Title)
 		item.Detail = strings.TrimSpace(item.Detail)
+		item.DueDate = normalizeDueDateValue(item.DueDate)
 		if item.Title == "" {
 			continue
 		}
@@ -30,6 +31,17 @@ func normalizeType(value string) string {
 	default:
 		return "task"
 	}
+}
+
+func normalizeDueDateValue(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
 }
 
 func normalizePriority(value string) string {

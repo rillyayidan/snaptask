@@ -57,6 +57,10 @@ func (h *Handler) Push(c *fiber.Ctx) error {
 	if len(req.Items) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "no items to push")
 	}
+	req.Items = service.NormalizeItems(req.Items)
+	if len(req.Items) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "no valid items to push")
+	}
 	results := h.google.Push(c.Context(), req.AccessToken, req.Items)
 	return c.JSON(model.PushResponse{Results: results})
 }

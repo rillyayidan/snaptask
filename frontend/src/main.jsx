@@ -8,6 +8,7 @@ import { useGoogleAuth } from './hooks/useGoogleAuth.js'
 import './styles.css'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8081'
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js')
@@ -23,10 +24,7 @@ function App() {
 
   React.useEffect(() => {
     if (shared.image) {
-      setImage(shared.image)
-      setItems([])
-      setError('')
-      setStatus('idle')
+      acceptImage(shared.image)
     }
     if (shared.error) {
       setError(shared.error)
@@ -64,10 +62,21 @@ function App() {
   function onFileChange(event) {
     const file = event.target.files?.[0]
     if (!file) return
-    setImage(file)
+    acceptImage(file)
+    event.target.value = ''
+  }
+
+  function acceptImage(file) {
+    const validationError = validateImageFile(file)
     setItems([])
-    setError('')
     setStatus('idle')
+    if (validationError) {
+      setImage(null)
+      setError(validationError)
+      return
+    }
+    setImage(file)
+    setError('')
   }
 
   return (
@@ -135,3 +144,13 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />)
+
+function validateImageFile(file) {
+  if (file.type && !file.type.startsWith('image/')) {
+    return 'Choose a screenshot image file.'
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return 'Screenshot is too large. Use an image under 10 MB.'
+  }
+  return ''
+}

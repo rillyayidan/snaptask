@@ -21,10 +21,14 @@ function App() {
   const [items, setItems] = useState([])
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const extractIdRef = React.useRef(0)
 
   React.useEffect(() => {
     if (shared.image) {
-      acceptImage(shared.image)
+      if (acceptImage(shared.image)) {
+        extract(shared.image)
+      }
     }
     if (shared.error) {
       setError(shared.error)
@@ -32,18 +36,32 @@ function App() {
     }
   }, [shared.image, shared.error])
 
+  React.useEffect(() => {
+    function handlePaste(event) {
+      const pastedImage = imageFileFromClipboard(event.clipboardData)
+      if (!pastedImage) return
+      event.preventDefault()
+      acceptImage(pastedImage)
+    }
+
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [])
+
   const imageUrl = React.useMemo(() => (image ? URL.createObjectURL(image) : ''), [image])
+  const uploadBoxClass = ['upload-box', imageUrl ? 'has-image' : '', isDragging ? 'dragging' : ''].filter(Boolean).join(' ')
 
   React.useEffect(() => () => {
     if (imageUrl) URL.revokeObjectURL(imageUrl)
   }, [imageUrl])
 
-  async function extract() {
-    if (!image) return
+  async function extract(targetImage = image) {
+    if (!targetImage) return
+    const extractId = ++extractIdRef.current
     setStatus('extracting')
     setError('')
     const form = new FormData()
-    form.append('image', image)
+    form.append('image', targetImage)
     try {
       const response = await fetch(`${API_BASE}/extract`, {
         method: 'POST',
@@ -51,9 +69,11 @@ function App() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Extraction failed')
+      if (extractId !== extractIdRef.current) return
       setItems(data.items ?? [])
       setStatus('ready')
     } catch (err) {
+      if (extractId !== extractIdRef.current) return
       setError(err.message)
       setStatus('idle')
     }
@@ -68,15 +88,28 @@ function App() {
 
   function acceptImage(file) {
     const validationError = validateImageFile(file)
+    extractIdRef.current += 1
     setItems([])
     setStatus('idle')
     if (validationError) {
       setImage(null)
       setError(validationError)
-      return
+      return false
     }
     setImage(file)
     setError('')
+    return true
+  }
+
+  function onDrop(event) {
+    event.preventDefault()
+    setIsDragging(false)
+    const droppedImage = firstImageFile(event.dataTransfer?.files)
+    if (!droppedImage) {
+      setError('Drop a screenshot image file.')
+      return
+    }
+    acceptImage(droppedImage)
   }
 
   return (
@@ -96,7 +129,16 @@ function App() {
 
         <div className="layout">
           <section className="capture-panel">
-            <div className="upload-box">
+            <div
+              className={uploadBoxClass}
+              onDragEnter={(event) => {
+                event.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragOver={(event) => event.preventDefault()}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+            >
               {imageUrl ? (
                 <img src={imageUrl} alt="Shared screenshot preview" />
               ) : (
@@ -106,6 +148,12 @@ function App() {
                 </div>
               )}
             </div>
+            {image && (
+              <div className="image-meta">
+                <span>{image.name || 'Shared screenshot'}</span>
+                <span>{formatBytes(image.size)}</span>
+              </div>
+            )}
             <div className="toolbar">
               <label className="icon-button" title="Upload screenshot">
                 <Upload size={19} />
@@ -116,6 +164,7 @@ function App() {
                 Extract
               </button>
               <button className="icon-button" title="Clear" disabled={!image} onClick={() => {
+                extractIdRef.current += 1
                 setImage(null)
                 setItems([])
                 setError('')
@@ -153,4 +202,22 @@ function validateImageFile(file) {
     return 'Screenshot is too large. Use an image under 10 MB.'
   }
   return ''
+}
+
+function firstImageFile(files) {
+  return Array.from(files ?? []).find((file) => !file.type || file.type.startsWith('image/')) ?? null
+}
+
+function imageFileFromClipboard(data) {
+  const imageFromFiles = firstImageFile(data?.files)
+  if (imageFromFiles) return imageFromFiles
+
+  const imageItem = Array.from(data?.items ?? []).find((item) => item.kind === 'file' && item.type.startsWith('image/'))
+  return imageItem?.getAsFile() ?? null
+}
+
+function formatBytes(value) {
+  if (!value) return '0 KB'
+  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
 }

@@ -34,6 +34,10 @@ The frontend env file needs `VITE_API_BASE_URL` plus the Firebase web app config
 
 For real mobile share-target testing, deploy the frontend to a valid HTTPS origin and install the PWA. Local desktop upload works without install.
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, commit, push, and merge workflow used in this project.
+
 ## Backend API
 
 - Local backend default: `http://localhost:8081`

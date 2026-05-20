@@ -17,7 +17,7 @@ cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-Fill the Gemini and Firebase values, then run:
+Fill the Gemini and Firebase values, then run. `SNAPTASK_TIMEZONE` controls how Gemini resolves relative dates like "tomorrow" or "besok" from screenshots.
 
 ```bash
 cd backend

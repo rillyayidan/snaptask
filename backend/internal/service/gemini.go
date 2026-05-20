@@ -20,7 +20,9 @@ import (
 
 const maxGeminiImageBytes = 10 * 1024 * 1024
 
-const extractorPrompt = `You are a task extractor. Analyze this screenshot and extract ALL action items, commitments, and time-sensitive information.
+const defaultExtractionTimezone = "Asia/Jakarta"
+
+const extractorPromptBase = `You are a task extractor. Analyze this screenshot and extract ALL action items, commitments, and time-sensitive information.
 
 Respond ONLY with a JSON array. No explanation, no markdown, no preamble.
 
@@ -35,12 +37,19 @@ Format:
   }
 ]
 
+Due date rules:
+- Use YYYY-MM-DD when only the date is known.
+- Use RFC3339 with timezone offset when both date and time are known.
+- Use null when the screenshot does not provide enough information.
+
 Extract implicit commitments too. "Eh nanti kirim filenya ya" = task: "Kirim file ke [sender]".`
 
 type GeminiService struct {
-	apiKey string
-	model  string
-	client *http.Client
+	apiKey   string
+	model    string
+	timezone string
+	location *time.Location
+	client   *http.Client
 }
 
 func NewGeminiService() *GeminiService {
@@ -48,10 +57,13 @@ func NewGeminiService() *GeminiService {
 	if modelName == "" {
 		modelName = "gemini-2.0-flash"
 	}
+	timezone, location := configuredExtractionLocation()
 	return &GeminiService{
-		apiKey: os.Getenv("GEMINI_API_KEY"),
-		model:  modelName,
-		client: &http.Client{Timeout: 25 * time.Second},
+		apiKey:   os.Getenv("GEMINI_API_KEY"),
+		model:    modelName,
+		timezone: timezone,
+		location: location,
+		client:   &http.Client{Timeout: 25 * time.Second},
 	}
 }
 
@@ -79,7 +91,7 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 	payload := geminiRequest{
 		Contents: []geminiContent{{
 			Parts: []geminiPart{
-				{Text: extractorPrompt},
+				{Text: buildExtractorPrompt(time.Now().In(s.location), s.timezone)},
 				{InlineData: &geminiInlineData{
 					MimeType: mimeType,
 					Data:     base64.StdEncoding.EncodeToString(imageBytes),
@@ -132,6 +144,33 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 		return nil, err
 	}
 	return NormalizeItems(items), nil
+}
+
+func buildExtractorPrompt(now time.Time, timezone string) string {
+	timezone = strings.TrimSpace(timezone)
+	if timezone == "" {
+		timezone = "UTC"
+	}
+	return fmt.Sprintf(`%s
+
+Reference date:
+- Today is %s.
+- Current local time is %s.
+- Local timezone is %s.
+
+Resolve relative dates and times against this reference, including Indonesian phrases like "besok", "lusa", "Jumat ini", and "Jumat depan".`, extractorPromptBase, now.Format("2006-01-02"), now.Format(time.RFC3339), timezone)
+}
+
+func configuredExtractionLocation() (string, *time.Location) {
+	timezone := strings.TrimSpace(os.Getenv("SNAPTASK_TIMEZONE"))
+	if timezone == "" {
+		timezone = defaultExtractionTimezone
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return "UTC", time.UTC
+	}
+	return timezone, location
 }
 
 func extractionTextFromResponse(response geminiResponse) (string, error) {

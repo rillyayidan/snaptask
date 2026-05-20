@@ -1,6 +1,26 @@
 package service
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"time"
+)
+
+func TestBuildExtractorPromptIncludesReferenceDateAndTimezone(t *testing.T) {
+	now := time.Date(2026, 5, 20, 9, 30, 0, 0, time.FixedZone("WIB", 7*60*60))
+	prompt := buildExtractorPrompt(now, "Asia/Jakarta")
+
+	for _, expected := range []string{
+		"Today is 2026-05-20.",
+		"Current local time is 2026-05-20T09:30:00+07:00.",
+		"Local timezone is Asia/Jakarta.",
+		`"besok"`,
+	} {
+		if !strings.Contains(prompt, expected) {
+			t.Fatalf("expected prompt to contain %q, got:\n%s", expected, prompt)
+		}
+	}
+}
 
 func TestNormalizeImageMimeTypeKeepsSupportedUploadType(t *testing.T) {
 	pngHeader := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}

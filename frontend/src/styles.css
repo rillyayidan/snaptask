@@ -200,6 +200,28 @@ input[type="file"] {
   gap: 12px;
 }
 
+.review-metrics {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.review-metrics span {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  color: #334155;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 6px;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
 .task-card {
   background: #ffffff;
   border: 1px solid #d1d5db;
@@ -255,6 +277,11 @@ select {
   width: 100%;
 }
 
+.invalid-field {
+  background: #fff7ed;
+  border-color: #fb923c;
+}
+
 textarea {
   resize: vertical;
 }
@@ -274,8 +301,61 @@ textarea {
   background: #ffffff;
   border: 1px solid #d1d5db;
   border-radius: 8px;
+  flex-direction: column;
+  justify-content: flex-start;
   margin-top: 14px;
   padding: 12px;
+}
+
+.push-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.push-result {
+  align-items: center;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  display: grid;
+  font-size: 0.84rem;
+  font-weight: 800;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.push-result.ok {
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #047857;
+}
+
+.push-result.skipped {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.push-result.error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.push-result-title,
+.push-result-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.push-result-detail {
+  color: inherit;
+  font-size: 0.75rem;
+  opacity: 0.82;
+  text-transform: uppercase;
 }
 
 .error-text,
@@ -338,5 +418,17 @@ textarea {
 
   .upload-box {
     aspect-ratio: 4 / 5;
+  }
+
+  .review-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .push-result {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .push-result-detail {
+    grid-column: 2;
   }
 }

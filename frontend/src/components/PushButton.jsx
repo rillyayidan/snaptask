@@ -1,27 +1,33 @@
-import { Loader2, Send } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, CircleSlash, Loader2, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 export function PushButton({ apiBase, accessToken, items, disabled, disabledReason }) {
   const [state, setState] = useState('idle')
   const [message, setMessage] = useState('')
+  const [results, setResults] = useState([])
   const pushableItems = items.filter((item) => item.title?.trim())
   const missingTitleReason = items.length > 0 && pushableItems.length === 0 ? 'Add a title before pushing.' : ''
   const blockedReason = disabledReason || missingTitleReason
   const pushDisabled = disabled || pushableItems.length === 0
+  const hasResultErrors = results.some((result) => result.status === 'error')
+  const messageClass = state === 'done' && !hasResultErrors ? 'success-text' : 'error-text'
 
   useEffect(() => {
     setState('idle')
     setMessage('')
+    setResults([])
   }, [accessToken, items])
 
   async function pushAll() {
     if (pushableItems.length === 0) {
       setMessage('Add at least one titled item before pushing.')
+      setResults([])
       return
     }
 
     setState('pushing')
     setMessage('')
+    setResults([])
     try {
       const response = await fetch(`${apiBase}/push`, {
         method: 'POST',
@@ -31,6 +37,7 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Push failed')
       const results = data.results ?? []
+      setResults(results)
       const failed = results.filter((result) => result.status === 'error')
       const skipped = results.filter((result) => result.status === 'skipped')
       if (failed.length) {
@@ -43,6 +50,7 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
       setState('done')
     } catch (err) {
       setMessage(err.message)
+      setResults([])
       setState('idle')
     }
   }
@@ -54,7 +62,27 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
         Push all
       </button>
       {blockedReason && items.length > 0 && <p className="hint-text">{blockedReason}</p>}
-      {message && <p className={state === 'done' ? 'success-text' : 'error-text'}>{message}</p>}
+      {message && <p className={messageClass}>{message}</p>}
+      {results.length > 0 && (
+        <div className="push-results">
+          {results.map((result, index) => (
+            <PushResultRow key={`${result.title}-${index}`} result={result} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PushResultRow({ result }) {
+  const Icon = result.status === 'ok' ? CheckCircle2 : result.status === 'skipped' ? CircleSlash : AlertTriangle
+  const detail = result.status === 'ok' ? result.type : result.error
+
+  return (
+    <div className={`push-result ${result.status}`}>
+      <Icon size={16} />
+      <span className="push-result-title">{result.title}</span>
+      <span className="push-result-detail">{detail}</span>
     </div>
   )
 }

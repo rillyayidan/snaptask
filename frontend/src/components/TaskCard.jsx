@@ -39,7 +39,12 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
 
       <label>
         Title
-        <input value={item.title} onChange={(event) => onUpdate(index, { title: event.target.value })} />
+        <input
+          aria-invalid={!item.title?.trim()}
+          className={!item.title?.trim() ? 'invalid-field' : ''}
+          value={item.title}
+          onChange={(event) => onUpdate(index, { title: event.target.value })}
+        />
       </label>
       <label>
         Detail

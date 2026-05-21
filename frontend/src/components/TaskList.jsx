@@ -1,4 +1,5 @@
-import { CalendarClock, ClipboardCheck, Plus, StickyNote } from 'lucide-react'
+import { CalendarClock, ClipboardCheck, Funnel, MinusCircle, Plus, StickyNote } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { TaskCard } from './TaskCard.jsx'
 
 const emptyItem = {
@@ -10,11 +11,18 @@ const emptyItem = {
 }
 
 export function TaskList({ items, onChange }) {
+  const [filter, setFilter] = useState('all')
   const counts = items.reduce((summary, item) => {
     const type = item.type === 'event' || item.type === 'note' ? item.type : 'task'
     summary[type] += 1
     return summary
   }, { task: 0, event: 0, note: 0 })
+
+  const filteredItems = useMemo(() => {
+    return items
+      .map((item, index) => ({ item, index }))
+      .filter(({ item }) => filter === 'all' || item.type === filter)
+  }, [filter, items])
 
   function update(index, patch) {
     onChange(items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)))
@@ -32,18 +40,45 @@ export function TaskList({ items, onChange }) {
         </button>
       </div>
       {items.length > 0 && (
-        <div className="review-metrics" aria-label="Extraction summary">
-          <span><ClipboardCheck size={15} /> {counts.task} task{counts.task === 1 ? '' : 's'}</span>
-          <span><CalendarClock size={15} /> {counts.event} event{counts.event === 1 ? '' : 's'}</span>
-          <span><StickyNote size={15} /> {counts.note} note{counts.note === 1 ? '' : 's'}</span>
-        </div>
+        <>
+          <div className="review-metrics" aria-label="Extraction summary">
+            <span><ClipboardCheck size={15} /> {counts.task} task{counts.task === 1 ? '' : 's'}</span>
+            <span><CalendarClock size={15} /> {counts.event} event{counts.event === 1 ? '' : 's'}</span>
+            <span><StickyNote size={15} /> {counts.note} note{counts.note === 1 ? '' : 's'}</span>
+          </div>
+          <div className="review-controls">
+            <div className="filter-group" role="tablist" aria-label="Filter extracted items">
+              {filterOptions(counts).map((option) => (
+                <button
+                  key={option.value}
+                  className={`filter-chip ${filter === option.value ? 'active' : ''}`}
+                  type="button"
+                  onClick={() => setFilter(option.value)}
+                >
+                  {option.icon}
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            {counts.note > 0 && (
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => onChange(items.filter((item) => item.type !== 'note'))}
+              >
+                <MinusCircle size={16} />
+                Remove notes
+              </button>
+            )}
+          </div>
+        </>
       )}
 
       {items.length === 0 ? (
         <div className="review-empty">Extracted tasks, events, and notes will appear here before you push them to Google.</div>
       ) : (
         <div className="task-list">
-          {items.map((item, index) => (
+          {filteredItems.map(({ item, index }) => (
             <TaskCard
               key={`${item.title}-${index}`}
               item={item}
@@ -56,4 +91,13 @@ export function TaskList({ items, onChange }) {
       )}
     </div>
   )
+}
+
+function filterOptions(counts) {
+  return [
+    { value: 'all', label: `All ${counts.task + counts.event + counts.note}`, icon: <Funnel size={14} /> },
+    { value: 'task', label: `Tasks ${counts.task}`, icon: <ClipboardCheck size={14} /> },
+    { value: 'event', label: `Events ${counts.event}`, icon: <CalendarClock size={14} /> },
+    { value: 'note', label: `Notes ${counts.note}`, icon: <StickyNote size={14} /> }
+  ]
 }

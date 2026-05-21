@@ -222,6 +222,51 @@ input[type="file"] {
   white-space: nowrap;
 }
 
+.review-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.filter-group {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px;
+}
+
+.filter-chip,
+.text-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 6px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.filter-chip.active {
+  background: #111827;
+  color: #ffffff;
+}
+
+.text-button {
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
 .task-card {
   background: #ffffff;
   border: 1px solid #d1d5db;
@@ -422,6 +467,20 @@ textarea {
 
   .review-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .review-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-chip,
+  .text-button {
+    flex: 1 1 auto;
   }
 
   .push-result {

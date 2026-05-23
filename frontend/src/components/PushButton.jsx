@@ -6,6 +6,7 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
   const [message, setMessage] = useState('')
   const [results, setResults] = useState([])
   const pushableItems = items.filter((item) => item.title?.trim())
+  const pushSummary = summarizePushableItems(pushableItems)
   const missingTitleReason = items.length > 0 && pushableItems.length === 0 ? 'Add a title before pushing.' : ''
   const blockedReason = disabledReason || missingTitleReason
   const pushDisabled = disabled || pushableItems.length === 0
@@ -61,6 +62,7 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
         {state === 'pushing' ? <Loader2 className="spin" size={18} /> : <Send size={18} />}
         Push all
       </button>
+      {!blockedReason && pushSummary && <p className="hint-text">{pushSummary}</p>}
       {blockedReason && items.length > 0 && <p className="hint-text">{blockedReason}</p>}
       {message && <p className={messageClass}>{message}</p>}
       {results.length > 0 && (
@@ -72,6 +74,24 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
       )}
     </div>
   )
+}
+
+function summarizePushableItems(items) {
+  if (items.length === 0) return ''
+
+  const tasks = items.filter((item) => item.type !== 'event' && item.type !== 'note').length
+  const events = items.filter((item) => item.type === 'event').length
+  const notes = items.filter((item) => item.type === 'note').length
+  const pushed = tasks + events
+  const parts = []
+
+  if (pushed > 0) {
+    parts.push(`${pushed} ${pushed === 1 ? 'item' : 'items'} will be pushed`)
+  }
+  if (notes > 0) {
+    parts.push(`${notes} ${notes === 1 ? 'note stays' : 'notes stay'} review-only`)
+  }
+  return parts.join('; ') + '.'
 }
 
 function PushResultRow({ result }) {

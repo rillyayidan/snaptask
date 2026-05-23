@@ -41,7 +41,9 @@ function App() {
       const pastedImage = imageFileFromClipboard(event.clipboardData)
       if (!pastedImage) return
       event.preventDefault()
-      acceptImage(pastedImage)
+      if (acceptImage(pastedImage)) {
+        extract(pastedImage)
+      }
     }
 
     window.addEventListener('paste', handlePaste)
@@ -82,7 +84,9 @@ function App() {
   function onFileChange(event) {
     const file = event.target.files?.[0]
     if (!file) return
-    acceptImage(file)
+    if (acceptImage(file)) {
+      extract(file)
+    }
     event.target.value = ''
   }
 
@@ -109,7 +113,9 @@ function App() {
       setError('Drop a screenshot image file.')
       return
     }
-    acceptImage(droppedImage)
+    if (acceptImage(droppedImage)) {
+      extract(droppedImage)
+    }
   }
 
   return (

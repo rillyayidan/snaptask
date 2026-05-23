@@ -31,9 +31,9 @@ func NormalizeItems(items []model.ExtractedItem) []model.ExtractedItem {
 
 func normalizeType(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "event", "calendar":
+	case "event", "calendar", "meeting", "appointment", "schedule":
 		return "event"
-	case "note":
+	case "note", "memo", "info", "reference":
 		return "note"
 	default:
 		return "task"
@@ -53,9 +53,24 @@ func normalizeDueDateValue(value *string) *string {
 
 func normalizePriority(value string) string {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "high", "medium", "low":
-		return strings.ToLower(strings.TrimSpace(value))
+	case "high", "urgent", "important":
+		return "high"
+	case "medium", "normal":
+		return "medium"
+	case "low", "minor":
+		return "low"
+	case "":
+		return "medium"
 	default:
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		switch {
+		case strings.Contains(normalized, "urgent") || strings.Contains(normalized, "high"):
+			return "high"
+		case strings.Contains(normalized, "low"):
+			return "low"
+		case strings.Contains(normalized, "medium") || strings.Contains(normalized, "normal"):
+			return "medium"
+		}
 		return "medium"
 	}
 }

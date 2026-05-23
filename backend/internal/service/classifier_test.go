@@ -25,8 +25,8 @@ func TestNormalizeItemsTrimsMetadata(t *testing.T) {
 	if items[0].Title != "Send deck" || items[0].Detail != "Original message" {
 		t.Fatalf("expected title and detail to be trimmed, got %#v", items[0])
 	}
-	if items[0].Priority != "medium" {
-		t.Fatalf("expected invalid priority to normalize to medium, got %q", items[0].Priority)
+	if items[0].Priority != "high" {
+		t.Fatalf("expected urgent priority alias to normalize to high, got %q", items[0].Priority)
 	}
 	if items[0].DueDate == nil || *items[0].DueDate != "2026-05-15T15:00:00+07:00" {
 		t.Fatalf("expected due date to be trimmed, got %#v", items[0].DueDate)
@@ -88,5 +88,36 @@ func TestNormalizeItemsKeepsSameTitleWhenDueDateDiffers(t *testing.T) {
 
 	if len(items) != 2 {
 		t.Fatalf("expected items with different due dates to remain separate, got %#v", items)
+	}
+}
+
+func TestNormalizeItemsAcceptsCommonGeminiAliases(t *testing.T) {
+	items := NormalizeItems([]model.ExtractedItem{
+		{Type: "meeting", Title: "Client sync", Priority: "urgent"},
+		{Type: "memo", Title: "Budget note", Priority: "minor"},
+	})
+
+	if len(items) != 2 {
+		t.Fatalf("expected 2 normalized items, got %#v", items)
+	}
+	if items[0].Type != "event" || items[0].Priority != "high" {
+		t.Fatalf("expected meeting/urgent aliases to normalize to event/high, got %#v", items[0])
+	}
+	if items[1].Type != "note" || items[1].Priority != "low" {
+		t.Fatalf("expected memo/minor aliases to normalize to note/low, got %#v", items[1])
+	}
+}
+
+func TestNormalizeItemsInfersPriorityFromVerboseLabels(t *testing.T) {
+	items := NormalizeItems([]model.ExtractedItem{
+		{Title: "Pay vendor", Priority: "High priority"},
+		{Title: "Read thread", Priority: "low confidence"},
+	})
+
+	if items[0].Priority != "high" {
+		t.Fatalf("expected verbose high priority label to normalize to high, got %#v", items[0])
+	}
+	if items[1].Priority != "low" {
+		t.Fatalf("expected verbose low priority label to normalize to low, got %#v", items[1])
 	}
 }

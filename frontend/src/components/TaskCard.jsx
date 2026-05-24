@@ -1,4 +1,4 @@
-import { CalendarClock, ClipboardCheck, StickyNote, Trash2 } from 'lucide-react'
+import { AlertTriangle, CalendarClock, ClipboardCheck, StickyNote, Trash2 } from 'lucide-react'
 
 const icons = {
   task: ClipboardCheck,
@@ -25,6 +25,7 @@ function fromDateTimeLocal(value) {
 
 export function TaskCard({ item, index, onUpdate, onDelete }) {
   const Icon = icons[item.type] ?? ClipboardCheck
+  const missingEventTime = item.type === 'event' && !item.due_date
   return (
     <article className="task-card">
       <div className="card-head">
@@ -76,6 +77,12 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
           onChange={(event) => onUpdate(index, { due_date: fromDateTimeLocal(event.target.value) })}
         />
       </label>
+      {missingEventTime && (
+        <p className="item-warning">
+          <AlertTriangle size={15} />
+          Add a date or time before pushing this event to Calendar.
+        </p>
+      )}
     </article>
   )
 }

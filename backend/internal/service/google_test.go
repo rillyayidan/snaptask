@@ -62,8 +62,11 @@ func TestNormalizeGoogleDueDateRejectsInvalidDate(t *testing.T) {
 
 func TestCalendarEventTimesUsesAllDayForDateOnlyDueDate(t *testing.T) {
 	raw := "2026-05-15"
-	start, end := calendarEventTimes(&raw, time.Date(2026, 5, 14, 9, 0, 0, 0, time.UTC))
+	start, end, ok := calendarEventTimes(&raw)
 
+	if !ok {
+		t.Fatal("expected date-only event time to be accepted")
+	}
 	if start["date"] != "2026-05-15" || end["date"] != "2026-05-16" {
 		t.Fatalf("expected all-day event dates, got start=%v end=%v", start, end)
 	}
@@ -74,12 +77,42 @@ func TestCalendarEventTimesUsesAllDayForDateOnlyDueDate(t *testing.T) {
 
 func TestCalendarEventTimesUsesDateTimeForRFC3339DueDate(t *testing.T) {
 	raw := "2026-05-15T15:00:00+07:00"
-	start, end := calendarEventTimes(&raw, time.Date(2026, 5, 14, 9, 0, 0, 0, time.UTC))
+	start, end, ok := calendarEventTimes(&raw)
 
+	if !ok {
+		t.Fatal("expected RFC3339 event time to be accepted")
+	}
 	if start["dateTime"] != "2026-05-15T08:00:00Z" {
 		t.Fatalf("expected UTC start dateTime, got %v", start)
 	}
 	if end["dateTime"] != "2026-05-15T09:00:00Z" {
 		t.Fatalf("expected one-hour event end, got %v", end)
+	}
+}
+
+func TestCalendarEventTimesRejectsMissingDueDate(t *testing.T) {
+	start, end, ok := calendarEventTimes(nil)
+
+	if ok {
+		t.Fatalf("expected missing event time to be rejected, got start=%v end=%v", start, end)
+	}
+}
+
+func TestPushSkipsEventWithoutDueDate(t *testing.T) {
+	service := NewGoogleService()
+	results := service.Push(context.Background(), "unused-token", []model.ExtractedItem{{
+		Type:     "event",
+		Title:    "Client sync",
+		Priority: "medium",
+	}})
+
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(results))
+	}
+	if results[0].Status != "skipped" {
+		t.Fatalf("expected undated event to be skipped, got %#v", results[0])
+	}
+	if results[0].Error == "" {
+		t.Fatal("expected skipped event to include a reason")
 	}
 }

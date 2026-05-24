@@ -60,7 +60,10 @@ func (s *GoogleService) createTask(ctx context.Context, token string, item model
 }
 
 func (s *GoogleService) createEvent(ctx context.Context, token string, item model.ExtractedItem) model.PushResult {
-	start, end := calendarEventTimes(item.DueDate, time.Now().Add(24*time.Hour))
+	start, end, ok := calendarEventTimes(item.DueDate)
+	if !ok {
+		return skippedResult(item, "events need a date or time before they can be pushed to Google Calendar")
+	}
 	payload := map[string]any{
 		"summary":     item.Title,
 		"description": item.Detail,
@@ -116,23 +119,23 @@ func normalizeGoogleDueDate(value *string) (string, bool) {
 	return parsed.Format(time.RFC3339), true
 }
 
-func calendarEventTimes(value *string, fallback time.Time) (map[string]string, map[string]string) {
+func calendarEventTimes(value *string) (map[string]string, map[string]string, bool) {
 	if value != nil {
 		raw := strings.TrimSpace(*value)
 		if parsed, err := time.Parse("2006-01-02", raw); err == nil {
 			return map[string]string{"date": parsed.Format("2006-01-02")},
-				map[string]string{"date": parsed.AddDate(0, 0, 1).Format("2006-01-02")}
+				map[string]string{"date": parsed.AddDate(0, 0, 1).Format("2006-01-02")},
+				true
 		}
 		if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
 			start := parsed.UTC()
 			return map[string]string{"dateTime": start.Format(time.RFC3339)},
-				map[string]string{"dateTime": start.Add(time.Hour).Format(time.RFC3339)}
+				map[string]string{"dateTime": start.Add(time.Hour).Format(time.RFC3339)},
+				true
 		}
 	}
 
-	start := fallback.UTC()
-	return map[string]string{"dateTime": start.Format(time.RFC3339)},
-		map[string]string{"dateTime": start.Add(time.Hour).Format(time.RFC3339)}
+	return nil, nil, false
 }
 
 func parseDueDate(value *string) (time.Time, bool) {

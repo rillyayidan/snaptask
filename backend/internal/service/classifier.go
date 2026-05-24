@@ -45,7 +45,9 @@ func normalizeDueDateValue(value *string) *string {
 		return nil
 	}
 	trimmed := strings.TrimSpace(*value)
-	if trimmed == "" {
+	normalized := strings.ToLower(strings.Trim(trimmed, `"'`))
+	switch normalized {
+	case "", "null", "nil", "none", "n/a", "na", "-", "unknown", "not specified":
 		return nil
 	}
 	return &trimmed

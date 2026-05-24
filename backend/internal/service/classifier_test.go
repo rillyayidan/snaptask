@@ -48,6 +48,23 @@ func TestNormalizeItemsDropsBlankTitlesAndEmptyDueDates(t *testing.T) {
 	}
 }
 
+func TestNormalizeItemsDropsNullishDueDateStrings(t *testing.T) {
+	for _, raw := range []string{"null", "N/A", "-", "unknown", `"null"`} {
+		raw := raw
+		items := NormalizeItems([]model.ExtractedItem{{
+			Title:   "Send recap",
+			DueDate: &raw,
+		}})
+
+		if len(items) != 1 {
+			t.Fatalf("expected one item for due date %q, got %#v", raw, items)
+		}
+		if items[0].DueDate != nil {
+			t.Fatalf("expected due date %q to normalize to nil, got %#v", raw, items[0].DueDate)
+		}
+	}
+}
+
 func TestNormalizeItemsDeduplicatesSameTitleTypeAndDueDate(t *testing.T) {
 	dueDate := "2026-05-23T15:00:00+07:00"
 	items := NormalizeItems([]model.ExtractedItem{

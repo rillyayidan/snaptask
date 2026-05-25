@@ -53,6 +53,18 @@ func TestNormalizeGoogleDueDateAcceptsDateOnly(t *testing.T) {
 	}
 }
 
+func TestNormalizeGoogleDueDateAcceptsLocalDateTime(t *testing.T) {
+	t.Setenv("SNAPTASK_TIMEZONE", "Asia/Jakarta")
+	raw := "2026-05-15T15:00"
+	got, ok := normalizeGoogleDueDate(&raw)
+	if !ok {
+		t.Fatal("expected local date-time due date to be accepted")
+	}
+	if got != "2026-05-15T08:00:00Z" {
+		t.Fatalf("expected local date-time to use configured timezone, got %q", got)
+	}
+}
+
 func TestNormalizeGoogleDueDateRejectsInvalidDate(t *testing.T) {
 	raw := "next Friday"
 	if got, ok := normalizeGoogleDueDate(&raw); ok {
@@ -81,6 +93,22 @@ func TestCalendarEventTimesUsesDateTimeForRFC3339DueDate(t *testing.T) {
 
 	if !ok {
 		t.Fatal("expected RFC3339 event time to be accepted")
+	}
+	if start["dateTime"] != "2026-05-15T08:00:00Z" {
+		t.Fatalf("expected UTC start dateTime, got %v", start)
+	}
+	if end["dateTime"] != "2026-05-15T09:00:00Z" {
+		t.Fatalf("expected one-hour event end, got %v", end)
+	}
+}
+
+func TestCalendarEventTimesUsesDateTimeForLocalDueDate(t *testing.T) {
+	t.Setenv("SNAPTASK_TIMEZONE", "Asia/Jakarta")
+	raw := "2026-05-15T15:00"
+	start, end, ok := calendarEventTimes(&raw)
+
+	if !ok {
+		t.Fatal("expected local date-time event to be accepted")
 	}
 	if start["dateTime"] != "2026-05-15T08:00:00Z" {
 		t.Fatalf("expected UTC start dateTime, got %v", start)

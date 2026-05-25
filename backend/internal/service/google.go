@@ -112,7 +112,8 @@ func (s *GoogleService) postGoogle(ctx context.Context, token, url string, paylo
 }
 
 func normalizeGoogleDueDate(value *string) (string, bool) {
-	parsed, ok := parseDueDate(value)
+	_, location := configuredExtractionLocation()
+	parsed, ok := parseDueDate(value, location)
 	if !ok {
 		return "", false
 	}
@@ -120,6 +121,7 @@ func normalizeGoogleDueDate(value *string) (string, bool) {
 }
 
 func calendarEventTimes(value *string) (map[string]string, map[string]string, bool) {
+	_, location := configuredExtractionLocation()
 	if value != nil {
 		raw := strings.TrimSpace(*value)
 		if parsed, err := time.Parse("2006-01-02", raw); err == nil {
@@ -127,7 +129,7 @@ func calendarEventTimes(value *string) (map[string]string, map[string]string, bo
 				map[string]string{"date": parsed.AddDate(0, 0, 1).Format("2006-01-02")},
 				true
 		}
-		if parsed, err := time.Parse(time.RFC3339, raw); err == nil {
+		if parsed, ok := parseDueDate(value, location); ok {
 			start := parsed.UTC()
 			return map[string]string{"dateTime": start.Format(time.RFC3339)},
 				map[string]string{"dateTime": start.Add(time.Hour).Format(time.RFC3339)},
@@ -138,9 +140,12 @@ func calendarEventTimes(value *string) (map[string]string, map[string]string, bo
 	return nil, nil, false
 }
 
-func parseDueDate(value *string) (time.Time, bool) {
+func parseDueDate(value *string, location *time.Location) (time.Time, bool) {
 	if value == nil {
 		return time.Time{}, false
+	}
+	if location == nil {
+		location = time.UTC
 	}
 	raw := strings.TrimSpace(*value)
 	if raw == "" {
@@ -151,6 +156,11 @@ func parseDueDate(value *string) (time.Time, bool) {
 	}
 	if parsed, err := time.Parse("2006-01-02", raw); err == nil {
 		return parsed.UTC(), true
+	}
+	for _, layout := range []string{"2006-01-02T15:04", "2006-01-02T15:04:05"} {
+		if parsed, err := time.ParseInLocation(layout, raw, location); err == nil {
+			return parsed.UTC(), true
+		}
 	}
 	return time.Time{}, false
 }

@@ -1,5 +1,5 @@
 import { CalendarClock, ClipboardCheck, Funnel, MinusCircle, Plus, StickyNote } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TaskCard } from './TaskCard.jsx'
 
 const emptyItem = {
@@ -17,6 +17,13 @@ export function TaskList({ items, onChange }) {
     summary[type] += 1
     return summary
   }, { task: 0, event: 0, note: 0 })
+  const activeFilterCount = filter === 'all' ? items.length : counts[filter]
+
+  useEffect(() => {
+    if (filter !== 'all' && activeFilterCount === 0) {
+      setFilter('all')
+    }
+  }, [activeFilterCount, filter])
 
   const filteredItems = useMemo(() => {
     return items
@@ -53,6 +60,7 @@ export function TaskList({ items, onChange }) {
                   key={option.value}
                   className={`filter-chip ${filter === option.value ? 'active' : ''}`}
                   type="button"
+                  disabled={option.value !== 'all' && option.count === 0}
                   onClick={() => setFilter(option.value)}
                 >
                   {option.icon}
@@ -95,9 +103,9 @@ export function TaskList({ items, onChange }) {
 
 function filterOptions(counts) {
   return [
-    { value: 'all', label: `All ${counts.task + counts.event + counts.note}`, icon: <Funnel size={14} /> },
-    { value: 'task', label: `Tasks ${counts.task}`, icon: <ClipboardCheck size={14} /> },
-    { value: 'event', label: `Events ${counts.event}`, icon: <CalendarClock size={14} /> },
-    { value: 'note', label: `Notes ${counts.note}`, icon: <StickyNote size={14} /> }
+    { value: 'all', label: `All ${counts.task + counts.event + counts.note}`, count: counts.task + counts.event + counts.note, icon: <Funnel size={14} /> },
+    { value: 'task', label: `Tasks ${counts.task}`, count: counts.task, icon: <ClipboardCheck size={14} /> },
+    { value: 'event', label: `Events ${counts.event}`, count: counts.event, icon: <CalendarClock size={14} /> },
+    { value: 'note', label: `Notes ${counts.note}`, count: counts.note, icon: <StickyNote size={14} /> }
   ]
 }

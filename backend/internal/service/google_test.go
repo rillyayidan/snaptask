@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"testing"
-	"time"
 
 	"snaptask/backend/internal/model"
 )
@@ -43,13 +42,14 @@ func TestNormalizeGoogleDueDateAcceptsRFC3339WithOffset(t *testing.T) {
 }
 
 func TestNormalizeGoogleDueDateAcceptsDateOnly(t *testing.T) {
+	t.Setenv("SNAPTASK_TIMEZONE", "Asia/Jakarta")
 	raw := "2026-05-15"
 	got, ok := normalizeGoogleDueDate(&raw)
 	if !ok {
 		t.Fatal("expected date-only due date to be accepted")
 	}
-	if got != time.Date(2026, 5, 15, 0, 0, 0, 0, time.UTC).Format(time.RFC3339) {
-		t.Fatalf("expected midnight UTC due date, got %q", got)
+	if got != "2026-05-14T17:00:00Z" {
+		t.Fatalf("expected local midnight converted to UTC, got %q", got)
 	}
 }
 

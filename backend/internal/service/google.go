@@ -155,7 +155,7 @@ func parseDueDate(value *string, location *time.Location) (time.Time, bool) {
 		return parsed.UTC(), true
 	}
 	if parsed, err := time.Parse("2006-01-02", raw); err == nil {
-		return parsed.UTC(), true
+		return time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, location).UTC(), true
 	}
 	for _, layout := range []string{"2006-01-02T15:04", "2006-01-02T15:04:05"} {
 		if parsed, err := time.ParseInLocation(layout, raw, location); err == nil {

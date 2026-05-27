@@ -351,6 +351,13 @@ textarea {
   grid-template-columns: 1fr 1fr;
 }
 
+.input-action {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .wide {
   width: 100%;
 }

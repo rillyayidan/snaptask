@@ -6,10 +6,12 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
   const [message, setMessage] = useState('')
   const [results, setResults] = useState([])
   const pushableItems = items.filter((item) => item.title?.trim())
+  const hasUndatedEvent = pushableItems.some((item) => item.type === 'event' && !item.due_date)
   const pushSummary = summarizePushableItems(pushableItems)
   const missingTitleReason = items.length > 0 && pushableItems.length === 0 ? 'Add a title before pushing.' : ''
-  const blockedReason = disabledReason || missingTitleReason
-  const pushDisabled = disabled || pushableItems.length === 0
+  const missingEventDateReason = hasUndatedEvent ? 'Add a date or time to every event before pushing.' : ''
+  const blockedReason = disabledReason || missingTitleReason || missingEventDateReason
+  const pushDisabled = disabled || pushableItems.length === 0 || hasUndatedEvent
   const hasResultErrors = results.some((result) => result.status === 'error')
   const messageClass = state === 'done' && !hasResultErrors ? 'success-text' : 'error-text'
 
@@ -22,6 +24,11 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
   async function pushAll() {
     if (pushableItems.length === 0) {
       setMessage('Add at least one titled item before pushing.')
+      setResults([])
+      return
+    }
+    if (hasUndatedEvent) {
+      setMessage('Add a date or time to every event before pushing.')
       setResults([])
       return
     }

@@ -24,17 +24,31 @@ func TestBuildExtractorPromptIncludesReferenceDateAndTimezone(t *testing.T) {
 
 func TestNormalizeImageMimeTypeKeepsSupportedUploadType(t *testing.T) {
 	pngHeader := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
-	got := normalizeImageMimeType("image/png; charset=binary", pngHeader)
+	got := normalizeImageMimeType("image/png; charset=binary", "chat.png", pngHeader)
 	if got != "image/png" {
 		t.Fatalf("expected image/png, got %q", got)
 	}
 }
 
+func TestNormalizeImageMimeTypeAcceptsJPEGAlias(t *testing.T) {
+	got := normalizeImageMimeType("image/jpg", "chat.jpg", []byte("not inspected"))
+	if got != "image/jpeg" {
+		t.Fatalf("expected image/jpeg alias, got %q", got)
+	}
+}
+
 func TestNormalizeImageMimeTypeFallsBackToDetectedType(t *testing.T) {
 	jpegHeader := []byte{0xff, 0xd8, 0xff, 0xdb}
-	got := normalizeImageMimeType("application/octet-stream", jpegHeader)
+	got := normalizeImageMimeType("application/octet-stream", "chat.bin", jpegHeader)
 	if got != "image/jpeg" {
 		t.Fatalf("expected detected image/jpeg, got %q", got)
+	}
+}
+
+func TestNormalizeImageMimeTypeFallsBackToHEICFilename(t *testing.T) {
+	got := normalizeImageMimeType("application/octet-stream", "shared-screenshot.HEIC", []byte("heic bytes"))
+	if got != "image/heic" {
+		t.Fatalf("expected HEIC filename fallback, got %q", got)
 	}
 }
 

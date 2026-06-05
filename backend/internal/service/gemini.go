@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -83,7 +84,7 @@ func (s *GeminiService) Extract(ctx context.Context, file multipart.File, header
 		return nil, fmt.Errorf("uploaded image is too large; max size is %d MB", maxGeminiImageBytes/1024/1024)
 	}
 
-	mimeType := normalizeImageMimeType(header.Header.Get("Content-Type"), imageBytes)
+	mimeType := normalizeImageMimeType(header.Header.Get("Content-Type"), header.Filename, imageBytes)
 	if !isSupportedImageMimeType(mimeType) {
 		return nil, fmt.Errorf("unsupported image type %q; upload a PNG, JPEG, WebP, GIF, HEIC, or HEIF screenshot", mimeType)
 	}
@@ -238,17 +239,47 @@ func extractJSONPayload(text string) (string, bool) {
 	return "", false
 }
 
-func normalizeImageMimeType(uploaded string, imageBytes []byte) string {
+func normalizeImageMimeType(uploaded string, filename string, imageBytes []byte) string {
 	if uploaded != "" {
 		if mediaType, _, err := mimepkg.ParseMediaType(uploaded); err == nil {
 			uploaded = mediaType
 		}
 		uploaded = strings.ToLower(strings.TrimSpace(uploaded))
 	}
+	uploaded = normalizeImageMimeAlias(uploaded)
 	if isSupportedImageMimeType(uploaded) {
 		return uploaded
 	}
-	return strings.ToLower(http.DetectContentType(imageBytes))
+
+	detected := strings.ToLower(http.DetectContentType(imageBytes))
+	if isSupportedImageMimeType(detected) {
+		return detected
+	}
+
+	if heicType := heicMimeTypeFromFilename(filename); heicType != "" {
+		return heicType
+	}
+	return detected
+}
+
+func normalizeImageMimeAlias(value string) string {
+	switch value {
+	case "image/jpg", "image/pjpeg":
+		return "image/jpeg"
+	default:
+		return value
+	}
+}
+
+func heicMimeTypeFromFilename(filename string) string {
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".heic":
+		return "image/heic"
+	case ".heif":
+		return "image/heif"
+	default:
+		return ""
+	}
 }
 
 func isSupportedImageMimeType(value string) bool {

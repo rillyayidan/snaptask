@@ -23,6 +23,7 @@ function App() {
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
   const extractIdRef = React.useRef(0)
+  const activeExtractionRef = React.useRef(null)
 
   React.useEffect(() => {
     if (shared.image) {
@@ -35,6 +36,10 @@ function App() {
       setStatus('idle')
     }
   }, [shared.image, shared.error])
+
+  React.useEffect(() => () => {
+    cancelActiveExtraction()
+  }, [])
 
   React.useEffect(() => {
     function handlePaste(event) {
@@ -59,7 +64,10 @@ function App() {
 
   async function extract(targetImage = image) {
     if (!targetImage) return
+    cancelActiveExtraction()
     const extractId = ++extractIdRef.current
+    const controller = new AbortController()
+    activeExtractionRef.current = controller
     setStatus('extracting')
     setError('')
     const form = new FormData()
@@ -67,7 +75,8 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/extract`, {
         method: 'POST',
-        body: form
+        body: form,
+        signal: controller.signal
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Extraction failed')
@@ -75,9 +84,14 @@ function App() {
       setItems(data.items ?? [])
       setStatus('ready')
     } catch (err) {
+      if (err.name === 'AbortError') return
       if (extractId !== extractIdRef.current) return
       setError(err.message)
       setStatus('idle')
+    } finally {
+      if (activeExtractionRef.current === controller) {
+        activeExtractionRef.current = null
+      }
     }
   }
 
@@ -92,6 +106,7 @@ function App() {
 
   function acceptImage(file) {
     const validationError = validateImageFile(file)
+    cancelActiveExtraction()
     extractIdRef.current += 1
     setItems([])
     setStatus('idle')
@@ -116,6 +131,20 @@ function App() {
     if (acceptImage(droppedImage)) {
       extract(droppedImage)
     }
+  }
+
+  function clearCapture() {
+    cancelActiveExtraction()
+    extractIdRef.current += 1
+    setImage(null)
+    setItems([])
+    setError('')
+    setStatus('idle')
+  }
+
+  function cancelActiveExtraction() {
+    activeExtractionRef.current?.abort()
+    activeExtractionRef.current = null
   }
 
   return (
@@ -169,13 +198,7 @@ function App() {
                 {status === 'extracting' ? <Loader2 className="spin" size={18} /> : <Wand2 size={18} />}
                 Extract
               </button>
-              <button className="icon-button" title="Clear" disabled={!image} onClick={() => {
-                extractIdRef.current += 1
-                setImage(null)
-                setItems([])
-                setError('')
-                setStatus('idle')
-              }}>
+              <button className="icon-button" title="Clear" disabled={!image} onClick={clearCapture}>
                 <Trash2 size={19} />
               </button>
             </div>

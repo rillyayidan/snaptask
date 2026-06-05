@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Camera, CheckCircle2, Loader2, Trash2, Upload, Wand2 } from 'lucide-react'
+import { Camera, CheckCircle2, Download, Loader2, Trash2, Upload, Wand2 } from 'lucide-react'
 import { TaskList } from './components/TaskList.jsx'
 import { PushButton } from './components/PushButton.jsx'
 import { useShareTarget } from './hooks/useShareTarget.js'
@@ -22,6 +22,8 @@ function App() {
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState('')
   const [isDragging, setIsDragging] = useState(false)
+  const [installPrompt, setInstallPrompt] = useState(null)
+  const [isInstalled, setIsInstalled] = useState(isStandaloneDisplay())
   const extractIdRef = React.useRef(0)
   const activeExtractionRef = React.useRef(null)
 
@@ -42,6 +44,39 @@ function App() {
   }, [])
 
   React.useEffect(() => {
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault()
+      setInstallPrompt(event)
+    }
+
+    function handleAppInstalled() {
+      setInstallPrompt(null)
+      setIsInstalled(true)
+    }
+
+    const displayMode = window.matchMedia?.('(display-mode: standalone)')
+    const handleDisplayModeChange = (event) => setIsInstalled(event.matches || isStandaloneDisplay())
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    if (displayMode?.addEventListener) {
+      displayMode.addEventListener('change', handleDisplayModeChange)
+    } else {
+      displayMode?.addListener?.(handleDisplayModeChange)
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+      if (displayMode?.removeEventListener) {
+        displayMode.removeEventListener('change', handleDisplayModeChange)
+      } else {
+        displayMode?.removeListener?.(handleDisplayModeChange)
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
     function handlePaste(event) {
       const pastedImage = imageFileFromClipboard(event.clipboardData)
       if (!pastedImage) return
@@ -57,10 +92,23 @@ function App() {
 
   const imageUrl = React.useMemo(() => (image ? URL.createObjectURL(image) : ''), [image])
   const uploadBoxClass = ['upload-box', imageUrl ? 'has-image' : '', isDragging ? 'dragging' : ''].filter(Boolean).join(' ')
+  const canInstall = Boolean(installPrompt) && !isInstalled
 
   React.useEffect(() => () => {
     if (imageUrl) URL.revokeObjectURL(imageUrl)
   }, [imageUrl])
+
+  async function installApp() {
+    if (!installPrompt) return
+    const prompt = installPrompt
+    setInstallPrompt(null)
+    try {
+      await prompt.prompt()
+      await prompt.userChoice
+    } catch {
+      setInstallPrompt(null)
+    }
+  }
 
   async function extract(targetImage = image) {
     if (!targetImage) return
@@ -155,10 +203,17 @@ function App() {
             <p className="eyebrow">SnapTask</p>
             <h1>Screenshot in. Tasks out.</h1>
           </div>
-          <button className="auth-button" onClick={auth.signIn}>
-            <CheckCircle2 size={18} />
-            {auth.user ? auth.user.displayName : 'Sign in'}
-          </button>
+          <div className="top-actions">
+            {canInstall && (
+              <button className="icon-button install-button" title="Install SnapTask" aria-label="Install SnapTask" onClick={installApp}>
+                <Download size={19} />
+              </button>
+            )}
+            <button className="auth-button" onClick={auth.signIn}>
+              <CheckCircle2 size={18} />
+              {auth.user ? auth.user.displayName : 'Sign in'}
+            </button>
+          </div>
         </header>
         {auth.error && <p className="error-banner">{auth.error}</p>}
 
@@ -222,6 +277,11 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />)
+
+function isStandaloneDisplay() {
+  const displayMode = window.matchMedia?.('(display-mode: standalone)')
+  return Boolean(displayMode?.matches || window.navigator.standalone)
+}
 
 function validateImageFile(file) {
   if (file.type && !file.type.startsWith('image/')) {

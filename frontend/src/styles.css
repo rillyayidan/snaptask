@@ -47,6 +47,18 @@ select {
   margin-bottom: 22px;
 }
 
+.top-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.install-button {
+  flex: 0 0 auto;
+}
+
 .eyebrow {
   color: #0f766e;
   font-size: 0.78rem;
@@ -472,6 +484,14 @@ textarea {
   .topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .top-actions {
+    width: 100%;
+  }
+
+  .top-actions .auth-button {
+    flex: 1 1 auto;
   }
 
   .auth-button {

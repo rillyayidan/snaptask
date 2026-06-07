@@ -200,17 +200,33 @@ func parseExtractedItems(text string) ([]model.ExtractedItem, error) {
 	var wrapped struct {
 		Items []model.ExtractedItem `json:"items"`
 	}
-	if err := json.Unmarshal([]byte(text), &wrapped); err != nil {
-		return nil, fmt.Errorf("parse extracted JSON: %w", err)
+	wrappedErr := json.Unmarshal([]byte(text), &wrapped)
+	if wrappedErr == nil && wrapped.Items != nil {
+		return wrapped.Items, nil
 	}
-	if wrapped.Items == nil {
-		return nil, errors.New("parse extracted JSON: missing items array")
+
+	var single model.ExtractedItem
+	if err := json.Unmarshal([]byte(text), &single); err == nil && hasExtractedItemContent(single) {
+		return []model.ExtractedItem{single}, nil
 	}
-	return wrapped.Items, nil
+
+	if wrappedErr != nil {
+		return nil, fmt.Errorf("parse extracted JSON: %w", wrappedErr)
+	}
+	return nil, errors.New("parse extracted JSON: missing items array")
+}
+
+func hasExtractedItemContent(item model.ExtractedItem) bool {
+	return strings.TrimSpace(item.Type) != "" ||
+		strings.TrimSpace(item.Title) != "" ||
+		strings.TrimSpace(item.Detail) != "" ||
+		item.DueDate != nil ||
+		strings.TrimSpace(item.Priority) != ""
 }
 
 func cleanGeminiJSONText(text string) string {
 	text = strings.TrimSpace(text)
+	text = strings.TrimPrefix(text, "\ufeff")
 	text = strings.TrimPrefix(text, "```json")
 	text = strings.TrimPrefix(text, "```")
 	text = strings.TrimSuffix(text, "```")

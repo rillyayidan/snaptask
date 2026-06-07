@@ -78,6 +78,16 @@ func TestParseExtractedItemsAcceptsWrappedItemsArray(t *testing.T) {
 	}
 }
 
+func TestParseExtractedItemsAcceptsSingleItemObject(t *testing.T) {
+	items, err := parseExtractedItems("{\"type\":\"task\",\"title\":\"Send invoice\",\"priority\":\"medium\"}")
+	if err != nil {
+		t.Fatalf("expected single item JSON to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Title != "Send invoice" {
+		t.Fatalf("expected parsed single task item, got %#v", items)
+	}
+}
+
 func TestParseExtractedItemsAcceptsPrefacedJSON(t *testing.T) {
 	items, err := parseExtractedItems("Here are the extracted tasks:\n[{\"type\":\"task\",\"title\":\"Send invoice\",\"priority\":\"medium\"}]")
 	if err != nil {
@@ -85,6 +95,16 @@ func TestParseExtractedItemsAcceptsPrefacedJSON(t *testing.T) {
 	}
 	if len(items) != 1 || items[0].Title != "Send invoice" {
 		t.Fatalf("expected parsed prefaced task, got %#v", items)
+	}
+}
+
+func TestParseExtractedItemsAcceptsUTF8BOMPayload(t *testing.T) {
+	items, err := parseExtractedItems("\ufeff[{\"type\":\"note\",\"title\":\"Read later\",\"priority\":\"low\"}]")
+	if err != nil {
+		t.Fatalf("expected BOM-prefixed JSON to parse: %v", err)
+	}
+	if len(items) != 1 || items[0].Title != "Read later" {
+		t.Fatalf("expected parsed BOM-prefixed item, got %#v", items)
 	}
 }
 

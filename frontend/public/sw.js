@@ -1,5 +1,6 @@
 const SHARE_CACHE = 'snaptask-share'
 const SHARED_IMAGE_PATH = '/shared-image'
+const MAX_SHARED_IMAGE_BYTES = 10 * 1024 * 1024
 
 self.addEventListener('fetch', (event) => {
   const request = event.request
@@ -20,6 +21,9 @@ async function handleShareTarget(request) {
   const image = firstSharedImage(formData.getAll('image'))
   if (!image) {
     return Response.redirect('/?share_error=missing-image', 303)
+  }
+  if (image.size > MAX_SHARED_IMAGE_BYTES) {
+    return Response.redirect('/?share_error=too-large', 303)
   }
 
   const cache = await caches.open(SHARE_CACHE)

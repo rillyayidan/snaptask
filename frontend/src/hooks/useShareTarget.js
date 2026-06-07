@@ -75,5 +75,8 @@ function shareErrorMessage(value) {
   if (value === 'missing-image') {
     return 'The shared content did not include a screenshot image.'
   }
+  if (value === 'too-large') {
+    return 'The shared screenshot is too large. Use an image under 10 MB.'
+  }
   return 'Could not import the shared screenshot.'
 }

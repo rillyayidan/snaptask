@@ -13,7 +13,7 @@ const emptyItem = {
 export function TaskList({ items, onChange }) {
   const [filter, setFilter] = useState('all')
   const counts = items.reduce((summary, item) => {
-    const type = item.type === 'event' || item.type === 'note' ? item.type : 'task'
+    const type = reviewItemType(item.type)
     summary[type] += 1
     return summary
   }, { task: 0, event: 0, note: 0 })
@@ -28,7 +28,7 @@ export function TaskList({ items, onChange }) {
   const filteredItems = useMemo(() => {
     return items
       .map((item, index) => ({ item, index }))
-      .filter(({ item }) => filter === 'all' || item.type === filter)
+      .filter(({ item }) => filter === 'all' || reviewItemType(item.type) === filter)
   }, [filter, items])
 
   function update(index, patch) {
@@ -99,6 +99,10 @@ export function TaskList({ items, onChange }) {
       )}
     </div>
   )
+}
+
+function reviewItemType(value) {
+  return value === 'event' || value === 'note' ? value : 'task'
 }
 
 function filterOptions(counts) {

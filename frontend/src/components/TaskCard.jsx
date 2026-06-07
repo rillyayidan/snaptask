@@ -1,4 +1,5 @@
 import { AlertTriangle, CalendarClock, ClipboardCheck, StickyNote, Trash2, X } from 'lucide-react'
+import { fromDateTimeLocalInput, isDueDateValueValid, toDateTimeLocalInput } from '../lib/dates.js'
 
 const icons = {
   task: ClipboardCheck,
@@ -6,32 +7,18 @@ const icons = {
   note: StickyNote
 }
 
-function toDateTimeLocal(value) {
-  if (!value) return ''
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return `${value}T00:00`
-
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-
-  const pad = (part) => String(part).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
-function fromDateTimeLocal(value) {
-  if (!value) return null
-  const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
-}
-
 export function TaskCard({ item, index, onUpdate, onDelete }) {
-  const Icon = icons[item.type] ?? ClipboardCheck
-  const missingEventTime = item.type === 'event' && !item.due_date
+  const itemType = reviewItemType(item.type)
+  const priority = reviewPriority(item.priority)
+  const Icon = icons[itemType] ?? ClipboardCheck
+  const missingEventTime = itemType === 'event' && !item.due_date
+  const invalidEventTime = itemType === 'event' && Boolean(item.due_date) && !isDueDateValueValid(item.due_date)
   return (
     <article className="task-card">
       <div className="card-head">
-        <span className={`type-pill ${item.type}`}>
+        <span className={`type-pill ${itemType}`}>
           <Icon size={15} />
-          {item.type}
+          {itemType}
         </span>
         <button className="small-icon" title="Delete item" onClick={onDelete}>
           <Trash2 size={16} />
@@ -54,7 +41,7 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
       <div className="field-grid">
         <label>
           Type
-          <select value={item.type} onChange={(event) => onUpdate(index, { type: event.target.value })}>
+          <select value={itemType} onChange={(event) => onUpdate(index, { type: event.target.value })}>
             <option value="task">Task</option>
             <option value="event">Event</option>
             <option value="note">Note</option>
@@ -62,7 +49,7 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
         </label>
         <label>
           Priority
-          <select value={item.priority} onChange={(event) => onUpdate(index, { priority: event.target.value })}>
+          <select value={priority} onChange={(event) => onUpdate(index, { priority: event.target.value })}>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
@@ -74,8 +61,9 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
         <span className="input-action">
           <input
             type="datetime-local"
-            value={toDateTimeLocal(item.due_date)}
-            onChange={(event) => onUpdate(index, { due_date: fromDateTimeLocal(event.target.value) })}
+            className={invalidEventTime ? 'invalid-field' : ''}
+            value={toDateTimeLocalInput(item.due_date)}
+            onChange={(event) => onUpdate(index, { due_date: fromDateTimeLocalInput(event.target.value) })}
           />
           <button
             className="small-icon"
@@ -88,12 +76,20 @@ export function TaskCard({ item, index, onUpdate, onDelete }) {
           </button>
         </span>
       </label>
-      {missingEventTime && (
+      {(missingEventTime || invalidEventTime) && (
         <p className="item-warning">
           <AlertTriangle size={15} />
-          Add a date or time before pushing this event to Calendar.
+          {invalidEventTime ? 'Fix this date before pushing the event to Calendar.' : 'Add a date or time before pushing this event to Calendar.'}
         </p>
       )}
     </article>
   )
+}
+
+function reviewItemType(value) {
+  return value === 'event' || value === 'note' ? value : 'task'
+}
+
+function reviewPriority(value) {
+  return value === 'high' || value === 'low' ? value : 'medium'
 }

@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, CircleSlash, Loader2, Send } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { isDueDateValueValid } from '../lib/dates.js'
 
 export function PushButton({ apiBase, accessToken, items, disabled, disabledReason }) {
   const [state, setState] = useState('idle')
@@ -7,11 +8,17 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
   const [results, setResults] = useState([])
   const pushableItems = items.filter((item) => item.title?.trim())
   const hasUndatedEvent = pushableItems.some((item) => item.type === 'event' && !item.due_date)
+  const hasInvalidEventDate = pushableItems.some((item) => (
+    item.type === 'event' &&
+    Boolean(item.due_date) &&
+    !isDueDateValueValid(item.due_date)
+  ))
   const pushSummary = summarizePushableItems(pushableItems)
   const missingTitleReason = items.length > 0 && pushableItems.length === 0 ? 'Add a title before pushing.' : ''
   const missingEventDateReason = hasUndatedEvent ? 'Add a date or time to every event before pushing.' : ''
-  const blockedReason = disabledReason || missingTitleReason || missingEventDateReason
-  const pushDisabled = disabled || pushableItems.length === 0 || hasUndatedEvent
+  const invalidEventDateReason = hasInvalidEventDate ? 'Fix invalid event dates before pushing.' : ''
+  const blockedReason = disabledReason || missingTitleReason || missingEventDateReason || invalidEventDateReason
+  const pushDisabled = disabled || pushableItems.length === 0 || hasUndatedEvent || hasInvalidEventDate
   const hasResultErrors = results.some((result) => result.status === 'error')
   const messageClass = state === 'done' && !hasResultErrors ? 'success-text' : 'error-text'
 
@@ -29,6 +36,11 @@ export function PushButton({ apiBase, accessToken, items, disabled, disabledReas
     }
     if (hasUndatedEvent) {
       setMessage('Add a date or time to every event before pushing.')
+      setResults([])
+      return
+    }
+    if (hasInvalidEventDate) {
+      setMessage('Fix invalid event dates before pushing.')
       setResults([])
       return
     }

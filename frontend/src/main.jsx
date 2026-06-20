@@ -261,7 +261,7 @@ function App() {
           </section>
 
           <section className="review-panel">
-            <TaskList items={items} onChange={setItems} />
+            <TaskList items={items} onChange={setItems} status={status} />
             <PushButton
               apiBase={API_BASE}
               accessToken={auth.accessToken}

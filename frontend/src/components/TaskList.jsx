@@ -10,8 +10,10 @@ const emptyItem = {
   priority: 'medium'
 }
 
-export function TaskList({ items, onChange }) {
+export function TaskList({ items, onChange, status = 'idle' }) {
   const [filter, setFilter] = useState('all')
+  const emptyState = reviewEmptyState(status)
+  const isExtracting = status === 'extracting'
   const counts = items.reduce((summary, item) => {
     const type = reviewItemType(item.type)
     summary[type] += 1
@@ -42,7 +44,7 @@ export function TaskList({ items, onChange }) {
           <p className="eyebrow">Review</p>
           <h2>{items.length ? `${items.length} extracted item${items.length === 1 ? '' : 's'}` : 'No extracted items yet'}</h2>
         </div>
-        <button className="icon-button" title="Add item" onClick={() => onChange([...items, emptyItem])}>
+        <button className="icon-button" title="Add item" disabled={isExtracting} onClick={() => onChange([...items, emptyItem])}>
           <Plus size={18} />
         </button>
       </div>
@@ -83,7 +85,10 @@ export function TaskList({ items, onChange }) {
       )}
 
       {items.length === 0 ? (
-        <div className="review-empty">Extracted tasks, events, and notes will appear here before you push them to Google.</div>
+        <div className="review-empty">
+          <strong>{emptyState.title}</strong>
+          <span>{emptyState.detail}</span>
+        </div>
       ) : (
         <div className="task-list">
           {filteredItems.map(({ item, index }) => (
@@ -99,6 +104,25 @@ export function TaskList({ items, onChange }) {
       )}
     </div>
   )
+}
+
+function reviewEmptyState(status) {
+  if (status === 'extracting') {
+    return {
+      title: 'Reading screenshot...',
+      detail: 'Extracted tasks, events, and notes will appear here as soon as Gemini finishes.'
+    }
+  }
+  if (status === 'ready') {
+    return {
+      title: 'No tasks found in this screenshot.',
+      detail: 'Try a clearer screenshot, crop closer to the conversation, or add an item manually.'
+    }
+  }
+  return {
+    title: 'No extracted items yet.',
+    detail: 'Extracted tasks, events, and notes will appear here before you push them to Google.'
+  }
 }
 
 function reviewItemType(value) {

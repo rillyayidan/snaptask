@@ -34,6 +34,16 @@ The frontend env file needs `VITE_API_BASE_URL` plus the Firebase web app config
 
 For real mobile share-target testing, deploy the frontend to a valid HTTPS origin and install the PWA. Local desktop upload works without install.
 
+## Demo Smoke Test
+
+Use this checklist before recording or pitching the 60-second demo:
+
+1. Sign in with a Google test user that has Tasks and Calendar consent enabled.
+2. Upload or share a chat screenshot with at least one task and one scheduled event.
+3. Confirm the review panel shows editable tasks, events, and any review-only notes.
+4. Push all items and verify task items appear in Google Tasks.
+5. Open Google Calendar and verify dated event items were created with the expected time.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, commit, push, and merge workflow used in this project.

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"testing"
 
 	"snaptask/backend/internal/model"
@@ -36,7 +37,7 @@ func TestNormalizeItemsTrimsMetadata(t *testing.T) {
 func TestNormalizeItemsDropsBlankTitlesAndEmptyDueDates(t *testing.T) {
 	emptyDueDate := "   "
 	items := NormalizeItems([]model.ExtractedItem{
-		{Title: "   ", DueDate: &emptyDueDate},
+		{Title: "   ", Detail: "   ", DueDate: &emptyDueDate},
 		{Title: "Call client", DueDate: &emptyDueDate},
 	})
 
@@ -45,6 +46,41 @@ func TestNormalizeItemsDropsBlankTitlesAndEmptyDueDates(t *testing.T) {
 	}
 	if items[0].DueDate != nil {
 		t.Fatalf("expected empty due date to normalize to nil, got %#v", items[0].DueDate)
+	}
+}
+
+func TestNormalizeItemsBuildsTitleFromDetail(t *testing.T) {
+	items := NormalizeItems([]model.ExtractedItem{{
+		Type:     "task",
+		Title:    "   ",
+		Detail:   "  Please send the signed vendor agreement before lunch tomorrow.  ",
+		Priority: "normal",
+	}})
+
+	if len(items) != 1 {
+		t.Fatalf("expected detail-only item to remain, got %#v", items)
+	}
+	if items[0].Title != "Please send the signed vendor agreement before lunch tomorrow." {
+		t.Fatalf("expected fallback title from detail, got %q", items[0].Title)
+	}
+	if items[0].Detail != "Please send the signed vendor agreement before lunch tomorrow." {
+		t.Fatalf("expected detail to stay trimmed, got %q", items[0].Detail)
+	}
+}
+
+func TestNormalizeItemsTruncatesFallbackTitleFromDetail(t *testing.T) {
+	items := NormalizeItems([]model.ExtractedItem{{
+		Detail: "Confirm the pitch deck, pricing appendix, legal notes, onboarding dates, success metrics, and stakeholder list before the 3 PM prep call.",
+	}})
+
+	if len(items) != 1 {
+		t.Fatalf("expected detail-only item to remain, got %#v", items)
+	}
+	if len(items[0].Title) > 83 {
+		t.Fatalf("expected fallback title to be truncated, got %q", items[0].Title)
+	}
+	if !strings.HasSuffix(items[0].Title, "...") {
+		t.Fatalf("expected truncated fallback title to end with ellipsis, got %q", items[0].Title)
 	}
 }
 

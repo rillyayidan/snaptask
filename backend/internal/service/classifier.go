@@ -16,7 +16,10 @@ func NormalizeItems(items []model.ExtractedItem) []model.ExtractedItem {
 		item.Detail = strings.TrimSpace(item.Detail)
 		item.DueDate = normalizeDueDateValue(item.DueDate)
 		if item.Title == "" {
-			continue
+			item.Title = titleFromDetail(item.Detail)
+			if item.Title == "" {
+				continue
+			}
 		}
 		key := dedupeKey(item)
 		if existingIndex, ok := seen[key]; ok {
@@ -75,6 +78,18 @@ func normalizePriority(value string) string {
 		}
 		return "medium"
 	}
+}
+
+func titleFromDetail(detail string) string {
+	title := strings.Join(strings.Fields(detail), " ")
+	if len(title) <= 80 {
+		return title
+	}
+	title = title[:80]
+	if lastSpace := strings.LastIndex(title, " "); lastSpace >= 40 {
+		title = title[:lastSpace]
+	}
+	return strings.TrimSpace(title) + "..."
 }
 
 func dedupeKey(item model.ExtractedItem) string {

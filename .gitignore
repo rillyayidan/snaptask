@@ -1,11 +1,27 @@
+# OS and editor noise
 .DS_Store
+Thumbs.db
+
+# Local secrets
 .env
 .env.local
+.env.*.local
+
+# Dependencies and build output
 node_modules/
 dist/
 bin/
 tmp/
+
+# Logs and test artifacts
 *.log
+*.tmp
+coverage/
+*.prof
+backend/coverage.out
 backend/snaptask-api
 backend/*.exe
+
+# Frontend local tooling
+frontend/.vite/
 frontend/.firebase/
